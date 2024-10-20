@@ -17,25 +17,35 @@ initial_centoids: np.ndarray = np.array([
   [46, 253], [26, 180]
 ])
 
-def manhattan_distance(a: int, b: int) -> int:
-  return np.abs(a - b).sum(
+def manhattan_distance(x: int, y: int) -> int:
+  """
+  Hitung Manhattan Distance dari dua titik
+  Rumus: |x1 - x2| + |y1 - y2|
+  """
+  return np.abs(x - y).sum(
     axis=1
   )
 
 def kmeans(data: np.ndarray, k: int, max_iters: int = 100) -> np.ndarray:
+  """
+  K-Means Clustering
+  
+  Lakukan iterasi k-means dengan metode Manhattan Distance
+  """
+  
   centroids: np.ndarray = initial_centoids
   
-  history: list | any = []
-  prev_cluster: list | any = None
-  cluster: list | any = None
+  history: np.ndarray | list | any = []
+  prev_cluster: np.ndarray | list | any = None
+  cluster: np.ndarray | list | any = None
   
   for _ in range(max_iters):
     # Kalkulasi jarak Manhattan dan tentukan cluster
-    distances: int | float | any = np.array([
+    distances: np.ndarray | any = np.array([
       manhattan_distance(data, centroid) for centroid in centroids
     ])
     
-    cluster: any = np.argmin(distances, axis=0)
+    cluster: np.ndarray | list | any = np.argmin(distances, axis=0)
     
     history.append(
       (centroids.copy(), cluster.copy())
@@ -85,8 +95,11 @@ for i, (centroids, clusters) in enumerate(history):
   plt.legend()
   plt.show()
 
+# Tambahkan kolom 'Cluster'
+# Isi dengan cluster terakhir dari iterasi K-Means
 df['Cluster'] = [final_cluster[i] + 1 for i in range(len(final_cluster))]
 
+# Buat file 'nasabah_clustered.csv' dari DataFrame hasil klasterisasi
 df.to_csv(
   path_or_buf="nasabah_clustered.csv",
   index=False,
