@@ -1,30 +1,100 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import time
 
-df = pd.read_csv('nasabah.csv')
+start_time = time.time()
 
-X = df[['Usia', 'Saldo']]
-k = 3
+file_path: str = "nasabah.csv"
 
-initial_centroids = X.sample(n=k, random_state=30).values
+df: pd.DataFrame = pd.read_csv(
+  filepath_or_buffer=file_path,
+  sep=","
+)
 
-def manhattan_kmeans(X, initial_centroids, max_iters=100):
-  centroids = initial_centroids
-  for i in range(max_iters):
-    distances = np.abs(X.values[:, np.newaxis] - centroids).sum(axis=2)
-    closest_centroids = np.argmin(distances, axis=1)
+data: np.ndarray = df[['Usia', 'Saldo']].values
+initial_centoids: np.ndarray = np.array([
+  [46, 253], [26, 180]
+])
+
+def manhattan_distance(a: int, b: int) -> int:
+  return np.abs(a - b).sum(
+    axis=1
+  )
+
+def kmeans(data: np.ndarray, k: int, max_iters: int = 100) -> np.ndarray:
+  centroids: np.ndarray = initial_centoids
+  
+  history: list | any = []
+  prev_cluster: list | any = None
+  cluster: list | any = None
+  
+  for _ in range(max_iters):
+    # Kalkulasi jarak Manhattan dan tentukan cluster
+    distances: int | float | any = np.array([
+      manhattan_distance(data, centroid) for centroid in centroids
+    ])
     
-    new_centroids = np.array([X.values[closest_centroids == j].mean(axis=0) for j in range(k)])
+    cluster: any = np.argmin(distances, axis=0)
     
-    if np.all(centroids == new_centroids):
+    history.append(
+      (centroids.copy(), cluster.copy())
+    )
+    
+    # Cek apakah cluster berhenti berubah
+    if np.all(prev_cluster == cluster):
       break
-    centroids = new_centroids
     
-  return closest_centroids, centroids
+    prev_cluster = cluster.copy()
+    
+    # Perbarui centoids
+    centroids = np.array(
+      [data[cluster == i].mean(axis=0) for i in range(k)]
+    )
+  
+  return history, cluster
 
-cluster_labels, final_centroids = manhattan_kmeans(X, initial_centroids)
+# Jumlah cluster (k)
+k: int = 2
 
-df['Cluster'] = cluster_labels
+history, final_cluster = kmeans(data, k, max_iters=100)
 
-print(df)
-print(final_centroids)
+# Visualisasikan cluster pada setiap iterasi
+for i, (centroids, clusters) in enumerate(history):
+  plt.figure()
+  plt.title(f"Iterasi ke {i + 1}")
+  
+  for j in range(k):
+    plt.scatter(
+      data[clusters == j, 0],
+      data[clusters == j, 1],
+      label=f"Cluster {j + 1}"
+    )
+  
+  plt.scatter(
+    centroids[:, 0],
+    centroids[:, 1],
+    marker="x",
+    color="red",
+    s=100,
+    label="Centroids"
+  )
+  
+  plt.xlabel("Usia")
+  plt.ylabel("Saldo")
+  plt.legend()
+  plt.show()
+
+df['Cluster'] = [final_cluster[i] + 1 for i in range(len(final_cluster))]
+
+df.to_csv(
+  path_or_buf="nasabah_clustered.csv",
+  index=False,
+  sep=","
+)
+end_time = time.time()
+duration = end_time - start_time
+
+print("Selesai !!")
+print("Total Iterasi:", len(history))
+print(f"Waktu eksekusi: {duration:.2f} detik")
